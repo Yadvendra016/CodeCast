@@ -33,6 +33,15 @@ io.on('connection', (socket) =>{
             })
         })
     });
+    
+    // sync the code
+    socket.on(ACTIONS.CODE_CHANGE,({roomId, code}) =>{
+        socket.in(roomId).emit(ACTIONS.CODE_CHANGE, {code});
+    })
+    // when new user join the room all the code which are there are also shows on that persons editor
+    socket.on(ACTIONS.SYNC_CODE,({socketId, code}) =>{
+        io.to(socketId).emit(ACTIONS.CODE_CHANGE, {code});
+    })
 
     // leave room
     socket.on('disconnecting', () =>{

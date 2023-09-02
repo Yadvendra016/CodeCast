@@ -9,6 +9,7 @@ import { toast } from "react-hot-toast";
 function EditorPage() {
 
   const [clients, setClients] = useState([]);
+  const codeRef = useRef(null);
 
   const Location = useLocation();
   const navigate = useNavigate();
@@ -32,6 +33,7 @@ function EditorPage() {
         roomId,
         username: Location.state?.username,
       });
+
       // Listen for new clients joining the chatroom
       socketRef.current.on(ACTIONS.JOINED, ({ clients, username, socketId }) => {
            // this insure that new user connected message do not display to that user itself
@@ -40,7 +42,13 @@ function EditorPage() {
 
           }
           setClients(clients)
+          // also send the code to sync
+          socketRef.current.emit(ACTIONS.SYNC_CODE, {
+            code: codeRef.current,
+            socketId,
+          });
       });
+
       // listening for disconnected
       socketRef.current.on(ACTIONS.DISCONNECTED, ({socketId, username}) =>{
         toast.success(`${username} left the room`);
@@ -61,6 +69,21 @@ function EditorPage() {
 
   if(!Location.state){
     return <Navigate to="/" />
+  }
+
+
+  const copyRoomId = async()=>{
+    try {
+      await navigator.clipboard.writeText(roomId);
+      toast.success(`roomIs is copied`);
+    } catch (error) {
+      console.log(error);
+      toast.error("unable to copy the room Id");
+    }
+  }
+
+  const leaveRoom = async() =>{
+    navigate('/')
   }
 
   return (
@@ -90,14 +113,14 @@ function EditorPage() {
           <hr />
           {/* Buttons */}
           <div className="mt-auto ">
-            <button className="btn btn-success">Copy Room ID</button>
-            <button className="btn btn-danger mt-2 mb-2 px-3 btn-block">Leave Room</button>
+            <button className="btn btn-success" onClick={copyRoomId}>Copy Room ID</button>
+            <button className="btn btn-danger mt-2 mb-2 px-3 btn-block" onClick={leaveRoom}>Leave Room</button>
           </div>
         </div>
         
         {/* Editor panel */}
         <div className="col-md-10 text-light d-flex flex-column h-100 ">
-          <Editor />
+          <Editor socketRef={socketRef} roomId={roomId} onCodeChange={(code) => {codeRef.current = code}} />
         </div>
       </div>
     </div>
